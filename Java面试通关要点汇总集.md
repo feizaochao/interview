@@ -1,8 +1,8 @@
-# 基础篇
+# ·基础篇
 
 ## 基本功
 
-##### 面向对象的特征
+#### 面向对象的特征
 
 面向对象的三个基本特征是：封装、继承、多态。
 
@@ -78,7 +78,7 @@
     变量名.方法名();
     ```
 
-##### final, finally, finalize的区别
+#### final, finally, finalize的区别
 
 这三者除了名字长得有点像，就是卡巴斯基、巴基斯坦和小丑巴基的关系，有个鸡巴关系！
 
@@ -144,7 +144,7 @@
 
   在GC要回收某个对象时，让这个对象有底气地大喊一声：报告，我还能再抢救一下！finalize也就成为了GC回收的阻碍者，也就会导致这个对象经过多个垃圾回收周期才能被回收。用得少，不讨论。Java9已经被弃用。
 
-##### Integer、new Integer()和int的比较
+#### Integer、new Integer()和int的比较
 
 * **两个new Integer()变量比较，永远为false。**
 
@@ -204,7 +204,7 @@
   System.out.print(i == j); // true 相当于 i.intValue() == j
   ```
 
-##### String、StringBuffer、StringBuilder区别
+#### String、StringBuffer、StringBuilder区别
 
 - **String (字符串常量)**
 * String是类不是基本数据类型
@@ -226,7 +226,7 @@
 * 线程非安全的，建议单线程使用。
   * 注意：不能通过赋值符号对他进行赋值。
 
-##### 重载和重写的区别
+#### 重载和重写的区别
 
 |                       重载                       |                             重写                             |
 | :----------------------------------------------: | :----------------------------------------------------------: |
@@ -479,9 +479,7 @@
 
   这，就是java语言中方法重写的本质。
 
-##### 抽象类和接口的区别
-
-
+#### 抽象类和接口的区别
 
 |     比较     |                            抽象类                            |                            接口                            |
 | :----------: | :----------------------------------------------------------: | :--------------------------------------------------------: |
@@ -493,5 +491,256 @@
 |    多继承    |                   一个子类只能存在一个父类                   |                  一个子类可以存在多个接口                  |
 |  添加新方法  | 向抽象类中添加新方法，可以提供默认的实现，因此可以不修改子类现有的代码 |       如果往接口中添加新方法，则子类中需要实现该方法       |
 
+#### Java动态代理
 
+- **什么是代理**
+
+  举个例子，微商代理，简单地说就是代替厂家卖商品，厂家“委托”代理为其销售商品。厂家对我们来说是不可见的。
+
+  * 优点一：可以隐藏委托类的实现
+  * 优点二：可以实现客户与委托类间的解耦，在不修改委托类代码的情况下能够做一些额外的行为。
+
+- **静态代理**
+
+  若代理类在程序运行前就已经存在，那么这种代理方式被称为静态代理，这种情况下的代理类通常都是我们在Java代码中定义的。通常情况下，静态代理的代理类和委托类会实现同一接口或是派生自相同的父类。下面我们用Vendor类代表生产厂家，BusinessAgent类代表微商代理，来介绍静态代理的简单实现，委托类和代理类都实现了Sell接口，Sell接口的定义如下：
+
+  ```java
+  // 委托类和代理类都实现了Sell接口
+  public interface Sell {
+      void sell();
+      void add();
+  }
+  ```
+
+  生产厂家Vendor类的定义如下：
+
+  ```java
+  // 生成厂家
+  public class Vendor implements Sell {
+      @Override
+      public void sell() {
+          System.out.println("In sell method");
+      }
+      
+      @Override
+      public void add() {
+          System.out.println("In add method");
+      }
+  }
+  ```
+
+  代理BusinessAgent类的定义如下：
+
+  ```java
+  // 代理类
+  public class BusinessAgent implements Sell {
+      private Sell vendor;
+      
+      public BusinessAgent(Sell vendor) {
+          this.vendor = vendor;
+      }
+      
+      @Override
+      public void sell() {
+          vendor.sell();
+      }
+      
+      @Override
+      public void add() {
+          vendor.add();
+      }
+  }
+  ```
+
+  从BusinessAgent类的定义我们可以了解到，静态代理可以通过聚合来实现，让代理类持有一个委托类的引用即可。
+
+  下面我们考虑一下这个需求：给Vendor类增加一个过滤功能，只卖货给大学生。通过静态代理，我们无需修改Vendor类的代码就可以实现，只需在BusinessAgent类中的sell方法中添加一个判断即可，如下所示：
+
+  ```java
+  // 代理类
+  public class BusinessAgent implements Sell {
+      private Sell vendor;
+      
+      public BusinessAgent(Sell vendor) {
+          this.vendor = vendor;
+      }
+      
+      @Override
+      public void sell() {
+          if (isCollegeStudent()) {
+              vendor.sell();
+          }
+      }
+      
+      public void add() {
+          vendor.add();
+      }
+      
+      private boolean isCollegeStudent() {
+          System.out.println("In isCollegeStudent method");
+          return true;
+      }
+  }
+  ```
+
+  这对应这我们上面提到的使用代理的第二个优点：可以实现客户与委托类间的解耦，在不修改委托类代码的情况下能够做一些额外的处理。静态代理的局限在于运行前必须编写好代理类。
+
+- **动态代理**
+
+  * 什么是动态代理
+
+    代理类在程序运行时创建的代理方法被称为动态代理。也就是说，这种情况下，代理类并不是在Java代码中定义的，而是在运行时根据我们在Java代码中的“指示”动态生成的。相对于静态代理，动态代理的优势在于可以很方便的对代理类的方法进行统一处理，而不用修改每个代理类的方法。
+
+    现在，我们假设要实现一个这样的需求：在执行委托类中的方法之前输出“before”，在执行完毕后输出“after”。我们还是以上面例子中的Vendor类作为委托类，BusinessAgent类作为代理类来进行介绍。首先我们使用静态代理来实现这一需求，相关代码如下：
+
+    ```java
+    // 代理类
+    public class BusinessAgent implements Sell {
+        private Sell vendor;
+        
+        public BusinessAgent(Sell vendor) {
+            this.vendor = vendor;
+        }
+        
+        public void sell() {
+            System.out.println("before");
+            vendor.sell();
+            System.out.println("after");
+        }
+        
+        public void add() {
+            System.out.println("before");
+            vendor.add();
+            System.out.println("after");
+        }
+    }
+    ```
+
+    假如Sell接口中包含上百个方法呢？这时候使用静态代理就会编写许多冗余代码。通过使用动态代理，我们可以做一个“统一指示”，从而对所有代理类的方法进行统一处理，而不用主意修改每个方法。
+
+  - 使用动态代理
+
+    * InvocationHandler接口
+
+      在使用动态代理时，我们需要定义一个位于代理类与委托类之间的中介类，这个中介类被要求实现InvocationHandler接口，这个接口的定义如下：
+
+      ```java
+      // 调用处理程序
+      public interface InvocationHandler {
+          Object invoke(Object proxy, Method method, Object[] args);
+      }
+      ```
+
+      从InvocationHandler这个名称我们就可以知道，实现了这个接口的中介类用作”调用处理器“。当我们调用代理类对象的方法时，这个”调用“会转送到invoke方法中，代理类对象作为proxy参数传入，参数method标识了我们具体调用的是代理类的哪个方法，args为这个方法的参数。这样一来，我们对代理类中的所有方法的调用都会变为对invoke的调用，我们就可以在invoke方法中添加统一的处理逻辑（ 也可以根据method参数对不同的代理类方法做不同的处理）。因此我们只需要在中介类的invoke方法实现中输出”before“，然后调用委托类的invoke方法，再输出“after”。
+
+    - 委托类的定义
+
+      动态代理方式下，要求委托类必须实现某个接口，这里我们实现的是Sell接口。委托类Vendor类的定义如下：
+
+      ```java
+      // 委托类
+      public class Vendor implements Sell {
+          public void sell() {
+              System.out.println("In sell method");
+          }
+          
+          public void add() {
+              System.out.println("In add method");
+          }
+      }
+      ```
+
+    - 中介类
+
+      上面我们提到过，中介类必须实现InvocationHandler接口，作为调用处理器“拦截”对代理类方法的调用。定义如下：
+
+      ```java
+      public class DynamicProxy implements InvocationHandler {
+          // obj为委托类对象
+          private Object obj;
+          
+          public DynamicProxy(Object obj) {
+              this.obj = obj;
+          }
+          
+          @Override
+          public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+              System.out.println("before");
+              Object result = method.invoke(obj, args);
+              System.out.println("afer");
+              return result;
+          }
+      }
+      ```
+
+    - 动态生成代理类
+
+      ```java
+      public class Test {
+          public static void main(String[] args) {
+              // 创建中介类实例
+              DynamicProxy inter = new DynamicProxy(new Vendor());
+              // 加上这句将会产生一个$Proxy.class文件，这个文件即为动态生成的代理类文件
+              			System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles","true"); 
+      
+              //获取代理类实例sell 
+              Sell sell = (Sell)(Proxy.newProxyInstance(Sell.class.getClassLoader(), new Class[] {Sell.class}, inter)); 
+       
+              //通过代理类对象调用代理类方法，实际上会转到invoke方法调用 
+              sell.sell(); 
+              sell.ad();
+          }
+      }
+      ```
+
+      在以上代码中，我们调用Proxy类的newProxyInstance方法来获取一个代理类实例。这个代理类实现了我们指定的接口并且会把方法调用分发到指定的调用处理器。这个方法的声明如下：
+
+      ```java
+      public static Object newProxyInstance(ClassLoader loader, Class<?>[] interfaces, InvocationHandler h) throws IllegalArgumentException 
+      ```
+
+      方法的三个参数含义分别如下：
+
+      loader：定义了代理类的ClassLoder; interfaces：代理类实现的接口列表 h：调用处理器，也就是我们上面定义的实现了InvocationHandler接口的类实例
+
+      我们运行一下，看看我们的动态代理是否能正常工作。我这里运行后的输出为：
+
+      ```java
+      before
+      In sell method
+      after
+      before
+      In add method
+      after
+      ```
+
+      上面我们已经简单提到过动态代理的原理，这里再简单的总结下：首先通过newProxyInstance方法获取代理类实例，而后我们便可以通过这个代理类实例调用代理类的方法，对代理类的方法的调用实际上都会调用中介类(调用处理器)的invoke方法，在invoke方法中我们调用委托类的相应方法，并且可以添加自己的处理逻辑。
+
+#### 序列化和反序列化
+
+- **概念**
+  * 序列化：把对象转换为字节序列的过程称为对象的序列化
+  * 反序列化：把字节序列恢复为对象的过程称为对象的反序列化
+
+- **为什么序列化**
+  * 持久存储时
+  * 网络传输时
+  * 通过RMI传输对象时
+
+- **实现方式**
+
+  实现Serializable接口。
+
+  * transient修饰的属性，不会被序列化
+  * 静态static的属性，不会序列化
+  * 实现这个Serializable接口的时候，一定要给这个serialVersionUID赋值
+  * 当属性是对象的时候，对象也要实现序列化接口。
+
+- **关于序列化的一些好文**
+
+  何为序列化：[Java Serializable：明明就一个空的接口嘛](https://juejin.im/post/5d0c4bebf265da1bc23f7f1d)
+
+  private方法调用：[readObject，writeObject，readResolve是怎么被调用的](https://blog.csdn.net/u014653197/article/details/78114041)
+
+#### 发射的用途和实现
 
