@@ -742,5 +742,160 @@
 
   private方法调用：[readObject，writeObject，readResolve是怎么被调用的](https://blog.csdn.net/u014653197/article/details/78114041)
 
-#### 发射的用途和实现
+#### 反射的用途和实现
+
+* **Java反射机制**
+
+  在程序运行时，对于任意一个类，都能够知道这个类的所有属性和方法，对于任意一个对象，都能够调用它的任意一个方法和属性，这种**动态获取信息**以及**动态调用对象的方法**的功能称为Java的反射机制。
+
+  反射机制很重要的一点就是**运行时**，其使得我们可以在程序运行时加载、探索以及使用编译期间完全未知的.class文件。换句话说，Java程序可以加载一个运行时才得知道名称的.class文件，然后获悉其完整构造，并生成其对象实体、或对其fields（变量）设值、或调用其methods（方法）。
+
+* **使用反射获取类的信息**
+
+  首先定义一个FatherClass类，然后定义一个继承自FatherClass类的SonClass类，如下所示：
+
+  ```java
+  public class FatherClass {
+      public String mFatherName;
+      public int mFatherAge;
+      
+      public void printFatherMsg() {
+          
+      }
+  }
+  ```
+
+  ```java
+  public class SonClass extends FatherClass {
+      private String mSonName;
+      protected int mSonAge;
+      public String mSonBirthday;
+      
+      public void printSonMsg() {
+          System.out.println("Son Msg - name : " + mSonName + "; age : " + mSonAge);
+      }
+      
+      private void setSonName(String name){
+          mSonName = name;
+      }
+  
+      private void setSonAge(int age){
+          mSonAge = age;
+      }
+  
+      private int getSonAge(){
+          return mSonAge;
+      }
+  
+      private String getSonName(){
+          return mSonName;
+      }
+  }
+  ```
+
+  - 获取类的所有变量信息
+
+    ```java
+    /**
+     * 通过反射获取类的所有变量
+     */
+    private static void printFields(){
+        //1.获取并输出类的名称
+        Class mClass = SonClass.class;
+        System.out.println("类的名称：" + mClass.getName());
+        
+        //2.1 获取所有 public 访问权限的变量
+        // 包括本类声明的和从父类继承的
+        Field[] fields = mClass.getFields();
+        
+        //2.2 获取所有本类声明的变量（不问访问权限）
+        //Field[] fields = mClass.getDeclaredFields();
+        
+        //3. 遍历变量并输出变量信息
+        for (Field field :
+                fields) {
+            //获取访问权限并输出
+            int modifiers = field.getModifiers();
+            System.out.print(Modifier.toString(modifiers) + " ");
+            //输出变量的类型及变量名
+            System.out.println(field.getType().getName()
+    		         + " " + field.getName());
+        }
+    }
+    
+    ```
+
+    需要注意的是注释2.1中的getFileds()与2.2的getDeclaredFields()之间的区别。
+
+    - 调用getFields()方法，输出sonClass类以及其所继承的父类（包括FatherClass和Object）的public方法。注：Object类中没有成员变量，所以没有输出。
+
+      ```java
+      类的名称：obj.SonClass
+      public java.lang.String mSonBirthday
+      public java.lang.String mFatherName
+      public int mFatherAge
+      ```
+
+    - 调用getDeclaredFields()，输出SonClass类的所有成员变量，不问访问权限。
+
+      ```java
+      类的名称：obj.SonClass
+      private java.lang.String mSonName
+      protected int mSonAge
+      public java.lang.String mSonBirthday
+      ```
+
+  - 获取类的所有方法信息
+
+    ```java
+    /**
+     * 通过反射获取类的所有方法
+     */
+    private static void printMethods(){
+        //1.获取并输出类的名称
+        Class mClass = SonClass.class;
+        System.out.println("类的名称：" + mClass.getName());
+        
+        //2.1 获取所有 public 访问权限的方法
+        //包括自己声明和从父类继承的
+        Method[] mMethods = mClass.getMethods();
+        
+        //2.2 获取所有本类的的方法（不问访问权限）
+        //Method[] mMethods = mClass.getDeclaredMethods();
+        
+        //3.遍历所有方法
+        for (Method method :
+                mMethods) {
+            //获取并输出方法的访问权限（Modifiers：修饰符）
+            int modifiers = method.getModifiers();
+            System.out.print(Modifier.toString(modifiers) + " ");
+            //获取并输出方法的返回值类型
+            Class returnType = method.getReturnType();
+            System.out.print(returnType.getName() + " "
+                    + method.getName() + "( ");
+            //获取并输出方法的所有参数
+            Parameter[] parameters = method.getParameters();
+            for (Parameter parameter:
+                 parameters) {
+                System.out.print(parameter.getType().getName()
+    		            + " " + parameter.getName() + ",");
+            }
+            //获取并输出方法抛出的异常
+            Class[] exceptionTypes = method.getExceptionTypes();
+            if (exceptionTypes.length == 0){
+                System.out.println(" )");
+            }
+            else {
+                for (Class c : exceptionTypes) {
+                    System.out.println(" ) throws "
+                            + c.getName());
+                }
+            }
+        }
+    }
+    ```
+
+  - 访问或操纵类的私有变量和方法
+
+    
 
