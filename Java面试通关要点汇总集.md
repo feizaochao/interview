@@ -897,5 +897,39 @@
 
   - 访问或操纵类的私有变量和方法
 
+#### 注解的本质和用途
+
+- **注解的基本原理**
+
+  以前，XML是各大框架的青睐者，它以松耦合的方式完成了框架中几乎所有的配置，但是随着项目越来越庞大，XML的内容也越来越复杂，维护成本变高。
+
+  于是就有人提出来一种标记式高耦合的配置方式，注解。
+
+  - 注解的本质
+
+    java.lang.annotation.Annotation接口中有这么一句话，用来描述注解。
+
+    > The common interface extended by all annotation types
+    >
+    > 所有的注解类型都继承自这个普通的类（Annotation）
+
+    这句话有点抽象，但却说出了注解的本质。我们看一个JDK内置注解的定义：
+
+    ```java
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface Override {
+        
+    }
+    ```
+
+    这是注解@Override的定义，其实它本质上就是：
+
+    ```java
+    public interface Override extends Annotation {
+        
+    }
+    ```
+
     
 
