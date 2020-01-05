@@ -931,5 +931,31 @@
     }
     ```
 
+    这是我们@Override注解的定义，你可以看到其中的@Target，@Retention两个注解就是我们所谓的元注解，元注解一般用于指定某个注解的生命周期以及作用目标等信息。
+    
+    Java中有以下几个元注解：
+    
+    - @Target：注解的作用目标
+    - @Retention：注解的生命周期
+    - @Documented：注解是否应当被包含在JavaDoc文档中
+    - @Inherited：是否允许子类继承该注解
+    
+    其中，@Target用于指定被修饰的注解最终可以作用的目标是谁，也就是指明，你的注解到底是用来修饰方法的？修饰类的还是用来修饰字段属性的。
+    
+    @Target的定义如下：
+    
+    ```java
+    @Documented
+    @Retendtion(RetentionPolicy.RUNTIME)
+    @Target(ElementType.ANNOTATION_TYPE)
+    public @interface Target {
+        /**
+        * Returns an array of the kinds of elements an
+        * annotation can be applied to.
+        */
+        ElementType[] value();
+    }
+    ```
+    
     
 
