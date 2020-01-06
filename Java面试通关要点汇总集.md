@@ -1,4 +1,4 @@
-# ·基础篇
+# 基础篇
 
 ## 基本功
 
@@ -143,6 +143,25 @@
 - **finalize**
 
   在GC要回收某个对象时，让这个对象有底气地大喊一声：报告，我还能再抢救一下！finalize也就成为了GC回收的阻碍者，也就会导致这个对象经过多个垃圾回收周期才能被回收。用得少，不讨论。Java9已经被弃用。
+
+#### == 和 equals 的区别
+
+在Java中，== 和 equals的区别，是面试必问的问题，然后只有很少的面试者才能完全回答正确。
+
+常见的错误回答就是：== 基础类型对比的是值是否相同，引用类型对比的是引用是否相同；而equals则是比较的值是否相同。
+
+至于为什么说它是错的，看完本文对 == 和 equals 的解读，就知道了。
+
+- **== 解读**
+
+  对于基本类型和引用类型 == 的作用效果是不同的，如下所示：
+
+  - 基本类型：比较的是值是否相同
+  - 引用类型：比较的是引用是否相同
+
+- **equals解读**
+
+  equals本质上就是==，只不过String和Integer等重写了equals方法，把他变成了值比较。
 
 #### Integer、new Integer()和int的比较
 
@@ -946,16 +965,286 @@
     
     ```java
     @Documented
-    @Retendtion(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     public @interface Target {
         /**
-        * Returns an array of the kinds of elements an
-        * annotation can be applied to.
-        */
+         * Returns an array of the kinds of elements        * an annotation type can be applied to.
+         * @return an array of the kinds of elements 	  * an annotation type can be applied to
+         */
         ElementType[] value();
     }
     ```
     
+    我们可以通过以下的方式来为这个value传值：
     
+    ```java
+    @Target(value = {ElementType.FIELD})
+    ```
+    
+    被这个@Target注解修饰的注解将只能作用在成员字段上，不能用于修饰方法或者类。其中，ElementType是一个枚举类型，有以下一些值：
+    
+    - ElementType.TYPE：允许被修饰的注解作用在类、接口和枚举上
+    - ElementType.FIELD：允许作用在属性字段上
+    - ElementType.METHOD：允许作用在方法上
+    - ElementType.PARAMETER：允许作用在方法参数上
+    - ElementType.CONSTRUCTOR：允许作用在构造器上
+    - ElementType.LOCAL_VARIABLE：允许作用在本地局部变量上
+    - ElementType.ANNOTATION_TYPE：允许作用在注解上
+    - ElementType.PACKAGE：允许作用在包上
+    
+    @Retention用于指定当前注解的生命周期，它的基本定义如下：
+    
+    ```java
+    @Documented
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.ANNOTATION_TYPE)
+    public @interface Retention {
+        /**
+         * Returns the retention policy.
+         * @return the retention policy
+         */
+        RetentionPolicy value();
+    }
+    ```
+    
+    同样的它也有一个value属性：
+    
+    ```java
+    @Retention(value = RetentionPolicy.RUNTIME)
+    ```
+    
+    这里的RetentionPolicy依然是一个枚举类型，它有以下几个枚举值可取：
+    
+    - RetentionPolicy.SOURCE：当前注解编译期可见，不会写入class文件
+    - RetentionPolicy.CLASS：类加载阶段丢弃，会写入class文件
+    - RetentionPolicy.RUNTIME：永久保存，可以反射获取
+    
+    @Retention注解指定了被修饰的注解的生命周期，一种是只能在编译期可见，编译后会被丢弃，一种会被编译器编译进class文件中，无论是类或是方法，乃至字段，他们都是有属性表的，而Java虚拟机也定义了几种注解属性表用于存储注解信息，但是这种可见性不能带到方法区，类加载时会予以丢弃，最后一种则是永久存在的可见性。
+    
+    @Documented注解修饰的注解，当我们执行JavaDoc文档打包时会被保存进doc文档，反之将在打包时丢弃。
+    
+    @Inherited注解修饰的注解是具有可继承性的，也就说我们的注解修饰了一个类，而该类的子类将自动继承父类的该注解。
+
+- **Java的内置三大注解**
+
+  除了上述四种元注解外，JDK还为我们预定义了另外三种注解，它们是：
+
+  - @Override
+  - @Deprecated
+  - @SuppressWarnings
+
+  @Override注解想必是大家很熟悉的了，它的定义如下：
+
+  ```java
+  @Target(ElementType:METHOD)
+  @Retention(RetentionPolicy.SOURCE)
+  public @interface Override {
+      
+  }
+  ```
+
+  它没有任何的属性，所以并不能存储任何其他信息。它只能作用于方法之上，编译结束后将被丢弃。
+
+  它就是一种典型的标记式注解，仅被编译器可知，编译器在对Java文件进行编译成字节码的过程中，一旦检测到某个方法上被修饰了该注解，就会去匹对父类中是否具有一个同样方法签名的函数，如果不是，自然不能通过编译。
+
+  @Deprecated的基本定义如下：
+
+  ```java
+  @Documented
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(value={CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE})
+  public @interface Deprecated {
+      
+  }
+  ```
+
+  依然是一种标记式注解，永久存在，可以修饰所有的类型，作用是标记当前的类或者方法或者字段等已经不再被推荐使用了，可能下一次的JDK版本就会被删除。
+
+  @SuppressWarnings主要用来压制Java的警告。
+
+- **注解与反射**
+
+  从虚拟机的层面看看，注解的本质到底是什么。
+
+  首先，我们自定义一个注解类型：
+
+  ```java
+  @Target(value = {ElementType.FIELD, ElementType.METHOD})
+  @Retention(value = RetentionPolicy.RUNTIME)
+  public @interface Hello {
+      String value();
+  }
+  ```
+
+  这里我们指定了Hello这个注解只能修饰字段和方法，并且该注解永久保存，以便我们反射获取。
+
+  之前我们说过，虚拟机规范定义了一系列和注解相关的属性表，也就是说，无论是字段、方法或是类本身，如果被注解修饰了，就可以被写进字节码文件。属性表有以下几种：
+
+  - RuntimeVisibleAnnotations：运行时可见的注解
+  - RuntimeInVisibleAnnotations：运行时不可见的注解
+  - RuntimeVisibleParameterAnnotations：运行时可见的方法参数注解
+  - RuntimeInVisibleParameterAnnotations：运行时不可见的方法参数注解
+  - AnnotationDefault：注解类元素的默认值
+
+  给大家看虚拟机的这几个注解相关的属性表的目的在于，让大家从整体上构建一个基本的印象，注解在字节码文件中是如何存储的。
+
+  所以，对于一个类或者接口来说，Class 类中提供了以下一些方法用于反射注解。
+
+  - getAnnotation：返回指定的注解
+  - isAnnotationPresent：判定当前元素是否被指定注解修饰
+  - getAnnotations：返回所有的注解
+  - getDeclaredAnnotation：返回本元素的指定注解
+  - getDeclaredAnnotations：返回本元素的所有注解，不包含父类继承而来的
+
+  方法、字段中相关反射注解的方法基本是类似的，这里不再赘述，我们下面看一个完整的例子。
+
+  首先，设置一个虚拟机启动参数，用于捕获 JDK 动态代理类。
+
+  > -Dsun.misc.ProxyGenerator.saveGeneratedFiles=true
+
+  然后main函数：
+
+  ```java
+  public class Test {
+      @Hello("hello")
+      public static void main(String[] args) throws NoSuchMethodException {
+          Class cls = Test.class;
+          Method method = cls.getMethod("main", String[].class);
+          Hello hello = method.getAnnatation(Hello.class);
+      }
+  }
+  ```
+
+  我们说过，注解本质上是继承了 Annotation 接口的接口，而当你通过反射，也就是我们这里的 getAnnotation 方法去获取一个注解类实例的时候，其实 JDK 是通过动态代理机制生成一个实现我们注解（接口）的代理类。
+
+  我们运行程序后，会看到输出目录里有这么一个代理类，反编译之后是这样的：
+
+  ```java
+  public final class $Proxy1 extends Proxy implements Hello {
+      public $Proxy1(InvocationHandler invocationHandler) {
+          super(invocationHandler);
+      }
+  }
+  ```
+
+  ```java
+  public final String valus() {
+      try {
+          return (String)super.h.invoke(this, m3, null);
+      }
+      catch(Error_ex) {}
+      catch(Throwable throwable) {
+          throw new UndeclaredThrowableException(throwable);
+      }
+  }
+  ```
+
+  代理类实现接口 Hello 并重写其所有方法，包括 value 方法以及接口 Hello 从 Annotation 接口继承而来的方法。
+
+  而这个关键的 InvocationHandler 实例是谁？
+
+  AnnotationInvocationHandler 是 JAVA 中专门用于处理注解的 Handler， 这个类的设计也非常有意思。
+
+  ```java
+  class AnnotationInvocationHandler implements InvocationHandler, Serializable {
+      private static final long serialVersionUID = 6182022883658399397L;
+      private final Class<? extends Annotation> type;
+      private final Map<String, Object> memberValues;
+      private transient volatile Method[] memberMethods = null;
+  
+      AnnotationInvocationHandler(Class<? extends Annotation> var1, Map<String, Object> var2) {
+          Class[] var3 = var1.getInterfaces();
+          if (var1.isAnnotation() && var3.length == 1 && var3[0] == Annotation.class) {
+              this.type = var1;
+              this.memberValues = var2;
+          } else {
+              throw new AnnotationFormatError("Attempt to create proxy for a non-annotation type.");
+          }
+      }
+      ...
+  }
+  ```
+
+  这里有一个 memberValues，它是一个 Map 键值对，键是我们注解属性名称，值就是该属性当初被赋上的值。
+
+  ```java
+  public Object invoke(Object var1, Method var2, Object[] var3) {
+          String var4 = var2.getName();
+          Class[] var5 = var2.getParameterTypes();
+          if (var4.equals("equals") && var5.length == 1 && var5[0] == Object.class) {
+              return this.equalsImpl(var3[0]);
+          } else if (var5.length != 0) {
+              throw new AssertionError("Too many parameters for an annotation method");
+          } else {
+              byte var7 = -1;
+              switch(var4.hashCode()) {
+              case -1776922004:
+                  if (var4.equals("toString")) {
+                      var7 = 0;
+                  }
+                  break;
+              case 147696667:
+                  if (var4.equals("hashCode")) {
+                      var7 = 1;
+                  }
+                  break;
+              case 1444986633:
+                  if (var4.equals("annotationType")) {
+                      var7 = 2;
+                  }
+              }
+  
+              switch(var7) {
+              case 0:
+                  return this.toStringImpl();
+              case 1:
+                  return this.hashCodeImpl();
+              case 2:
+                  return this.type;
+              default:
+                  Object var6 = this.memberValues.get(var4);
+                  if (var6 == null) {
+                      throw new IncompleteAnnotationException(this.type, var4);
+                  } else if (var6 instanceof ExceptionProxy) {
+                      throw ((ExceptionProxy)var6).generateException();
+                  } else {
+                      if (var6.getClass().isArray() && Array.getLength(var6) != 0) {
+                          var6 = this.cloneArray(var6);
+                      }
+  
+                      return var6;
+                  }
+              }
+          }
+      }
+  ```
+
+  而这个 invoke 方法就很有意思了，大家注意看，我们的代理类代理了 Hello 接口中所有的方法，所以对于代理类中任何方法的调用都会被转到这里来。
+
+  var2 指向被调用的方法实例，而这里首先用变量 var4 获取该方法的简明名称，接着 switch 结构判断当前的调用方法是谁，如果是 Annotation 中的四大方法，将 var7 赋上特定的值。
+
+  如果当前调用的方法是 toString，equals，hashCode，annotationType 的话，AnnotationInvocationHandler 实例中已经预定义好了这些方法的实现，直接调用即可。
+
+  那么假如 var7 没有匹配上这四种方法，说明当前的方法调用的是自定义注解字节声明的方法，例如我们 Hello 注解的 value 方法。**这种情况下，将从我们的注解 map 中获取这个注解属性对应的值。**
+
+  其实，JAVA 中的注解设计个人觉得有点反人类，明明是属性的操作，非要用方法来实现。当然，如果你有不同的见解，欢迎留言探讨。
+
+  最后我们再总结一下整个反射注解的工作原理：
+
+  首先，我们通过键值对的形式可以为注解属性赋值，像这样：@Hello（value = "hello"）。
+
+  接着，你用注解修饰某个元素，编译器将在编译期扫描每个类或者方法上的注解，会做一个基本的检查，你的这个注解是否允许作用在当前位置，最后会将注解信息写入元素的属性表。
+
+  然后，当你进行反射的时候，虚拟机将所有生命周期在 RUNTIME 的注解取出来放到一个 map 中，并创建一个 AnnotationInvocationHandler 实例，把这个 map 传递给它。
+
+  最后，虚拟机将采用 JDK 动态代理机制生成一个目标注解的代理类，并初始化好处理器。
+
+  那么这样，一个注解的实例就创建出来了，它本质上就是一个代理类，你应当去理解好 AnnotationInvocationHandler 中 invoke 方法的实现逻辑，这是核心。一句话概括就是，**通过方法名返回注解属性值**。
+
+  可以看[Java注解](https://www.bilibili.com/video/av62102209?p=6)
+
+## 集合
+
+#### 泛型
 
