@@ -1248,3 +1248,116 @@
 
 #### 泛型
 
+- **泛型是什么**
+
+  泛型最精准的定义：参数化类型。具体点说就是处理的数据类型不是固定的，而是可以作为参数传入。定义泛型类、泛型接口、泛型方法，这样，同一套代码，可以用于多种数据类型。
+
+- **泛型带来的好处**
+
+  在没有泛型的情况下，通过对类型Object的引用来实现参数的“任意化”，“任意化”带来的缺点是要做显示的强制类型转换，而这种转换是要求开发者对实际参数类型可以预知的情况下进行的。对于强制类型转换错误的情况，编译器可能不提示错误，在运行时才出现异常，这本身就是一个安全隐患。
+
+  那么泛型的好处就是在编译的时候能够检查类型安全，并且所有的强制转换都是自动和隐式的。
+
+- **泛型中通配符**
+
+  我们在定义泛型类，泛型方法，泛型接口的时候经常会碰见很多不同的通配符，比如T，E，K，V，?等等，这些通配符又都是些什么意思呢？
+
+  - 常用的T，E，K，V，?
+
+    本质上都是通配符，没啥区别，只不过是编码时的一种约定俗成的东西。
+
+    - ? 表示不确定的Java类型
+    - T（type）表示具体的一个Java类型
+    - K（key）V（value）分别代表Java键值中的key和value
+    - E（element）代表Element
+
+    - ? 无界通配符
+
+      先从一个小例子看起，我有一个父类Animal和几个子类，如狗、猫等，现在我需要一个动物的列表，我的第一个想法是像这样的：
+
+      ```java
+      List<Animal> listAnimals;
+      ```
+
+      但是老板的想法却是这样的：
+
+      ```java
+      List<? extends Animal> listAnimals;
+      ```
+
+      为什么要使用通配符而不是简单的泛型呢？通配符其实在声明局部变量时是没有什么意义的，但是当你为一个方法声明一个参数时，它是非常重要的。
+
+      ```java
+      static int countLegs(List<? extends Animal> animals) {
+          int retVal = 0;
+          for(Animal animal : animals) {
+              retVal += animal.countLegs();
+          }
+          return retVal;
+      }
+      
+      static int countLegs1(List<Animal> animals) {
+          int retVal = 0;
+          for(Animal animal : animals) {
+              retVal += animals.countLegs();
+          }
+          return retVal;
+      }
+      
+      public static void main(String[] args) {
+          List<Dog> dogs = new ArrayList<>();
+          // 不会报错
+          countLegs(dogs);
+          // 报错
+          countLegs1(dogs);
+      }
+      ```
+
+      所以，对与不确定或者不关心实际要操作的类型，可以使用无限制通配符（尖括号里一个问好，即<?>），表示可以持有任何类型。像countLegs方法中，限定了上届，但是不关心具体类型是什么，所以对于传入的Animal的所有子类都可以支持，并且不会报错。
+
+    - 上界通配符<? extends E>
+
+      > 上界：用extends关键字声明，表示参数化的类型可能是所指定的类型，或者是此类型的子类。
+
+      在类型参数中使用extends表示这个泛型中的参数必须是E或者E的子类，这样有两个好处：
+
+      - 如果传入的类型不是E或者E的子类，编译不成功。
+      - 泛型中可以使用E的方法，要不然还得强制成E才能使用。
+
+      ```java
+      private <K extends A, E extends B> E test(K arg1, E arg2) {
+          E result = arg2;
+          arg2.compareTo(arg1);
+          // ..
+          return result;
+      }
+      ```
+
+      > 类型参数列表中如果有多个类型参数上限，用逗号分开
+
+    - 下界通配符<? super E>
+
+      > 下界：用super进行声明，表示参数化的类型可能是所指定的类型，或者是此类型的父类型，直至Object
+
+      在类型参数中使用super表示这个泛型中的参数必须是E或者E的父类。
+
+      ```java
+      private <T> void test(List<? super T> dst, List<T> src) {
+          for(T t : src) {
+              dst.add(t);
+          }
+      }
+      
+      public static void main(String[] args) {
+          List<Dog> dogs = new ArrayList<>();
+          List<Animal> animals = new ArrayList<>();
+          new Test3().test(animals, dogs);
+      }
+      ```
+
+      dst 类型“大于等于”src的类型，这里的“大于等于”是指dst表示的范围比src要大，因此装得下dst的容器也就能装src。
+
+      [Java-泛型类型擦除](https://blog.csdn.net/fw0124/article/details/42295463)
+
+#### Collection总览
+
