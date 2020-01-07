@@ -1361,3 +1361,756 @@
 
 #### Collection总览
 
+- **Java集合框架主要结构图**
+
+  ![img](https://user-gold-cdn.xitu.io/2016/11/29/9c549ffd99ca2505da782d00b6a0a27a?imageslim)
+
+  如上图所示，Java的集合主要按两种接口分类：Collection，Map。
+
+  - Collection接口
+
+    Collection作为集合的一个根接口，定义了一组对象和它的子类需要实现的15个方法：
+
+    ![这里写图片描述](https://user-gold-cdn.xitu.io/2016/11/29/90037ec30b20e7935af3566e71a04cf7?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+    对集合的基础操作，比如：
+
+    ```java
+    int size(); // 获取元素个数
+    boolean isEmpty(); // 是否个数为0
+    boolean contains(Object element); // 是否包含指定元素
+    boolean add(E element); // 添加元素，成功时返回true
+    boolean remove(Object element); // 删除元素，成功时返回true
+    Iterator iterator(); // 获取迭代器
+    ```
+
+    还有一些操作整个集合的方法，比如：
+
+    ```java
+    boolean containsAll(Collection c); // 比较
+    boolean addAll(Collection c); // 添加集合C中所有的元素到本集合中，如果集合有改变就返回true
+    boolean removeAll(Collection c); // 删除本集合中和c集合中一致的元素，如果集合有改变就返回true
+    boolean retainAll(Collection c); // 保留本集合中c集合中没有的元素，如果集合有改变就返回true
+    void clear();
+    ```
+
+    还有对数组操作的方法：
+
+    ```java 
+    Object[] toArray();
+    T[] toArray(T[] a); // 返回一个包含集合中所有元素的数组，运行时根据集合元素的类型指定数组的类型。
+    ```
+
+    在JDK8以后，Collection接口还提供了从集合获取连续的或者并发的流。
+
+    ```java
+    Stream stream();
+    Stream parallelStream();
+    ```
+
+    遍历Collection的几种方式：
+
+    - for-each语法
+
+      ```java
+      Collection persons = new ArrayList<>();
+      for(Person person: persons) {
+          Sout(person.name);
+      }
+      ```
+
+    - 使用Iterator迭代器
+
+      ```java
+      Collecton persons = new ArrayList<>();
+      Iterator iterator = persons.iterator();
+      while(iterator.hasNext()) {
+          Sout(iterator.next.name);
+      }
+      ```
+
+    - 使用aggregate operations聚合操作
+
+      ```java
+      Collection persons = new ArrayList<>();
+      persons.stream().forEach(new Consumer() {
+          @Override
+          public void accept(Person person) {
+              Sout(person.name);
+          }
+      })
+      ```
+
+  - Aggregate Operations 聚合操作
+
+    在JDK8以后，推荐使用聚合操作对一个集合进行操作。聚合操作通常和lambda表达式结合使用，让代码看起来更简洁。
+
+    - 使用流来遍历一个ShapesCollection，然后输出红色的元素：
+
+      ```java
+      myShapesCollection.stream()
+          .filter(e -> e.getColor() == Color.RED)
+          .forEach(e -> Sout(e.getName()));
+      ```
+
+    - 可以获取一个并发流（parallelStream）,当集合元素很多时使用并发可以提高效率：
+
+      ```java
+      myShapesCollection.parallelStream()
+          .filter(e -> e.getColor() == Color.RED)
+          .forEach(e -> Sout(e.getName()));
+      ```
+
+    - 聚合操作还有很多操作集合的方法，比如说你想把Collection中的元素都转成String对象，然后把它们连起来：
+
+      ```java
+      String joined = elements.stream()
+          .map(Object::toString)
+          .collect(Collectors.joining(", "));
+      ```
+
+  - Iterator迭代器
+
+    Collection继承自Iterator迭代器。
+
+    结合Collection和Iterator可以实现一些复用性很强的方法，比如：
+
+    ```java
+    public static void filter(Collection c) {
+        for(Iterator it = c.iterator; it.hasNext()l;) {
+            if(!condition(it.next())) {
+                it.remove();
+            }
+        }
+    }
+    ```
+
+    这个filter方法是多态的，可以用于所有Collection的子类，实现类。
+
+#### Iterator迭代器
+
+- **Iterator概览**
+
+  ```java
+  public interface Iterable<T> {
+  
+      /**
+      * Returns an {@link Iterator} for the elements in 	  * this object.
+      *
+      * @return An {@code Iterator} instance.
+      */
+      Iterator<T> iterator();
+  }
+  ```
+
+  Iterator接口内只有一个iterator方法，返回一个Iterator迭代器。
+
+  根据官方文档：
+
+  > Iterators differ from enumerations in two ways:
+  >
+  > Iterators allow the caller to remove elements from the underlying collection during the iteration with well-defined semantics.
+  > Method names have been improved.
+
+  大致意思就是说替代了Enumerations，方法名字缩短了。其次是允许调用者在遍历过程中语法正确地删除元素。
+
+  注意这个【语法正确】，事实上我们在使用Iterator对容器进行迭代时如果修改容器，可能会报ConcurrentModificationException的错。官方称这种情况下的迭代器时fail-fast迭代器。
+
+- **fail-fast与ConcurrentModificationException**
+
+  以ArrayList为例，在调用迭代器的next，remove方法时：
+
+  ```java
+  public E next() {
+      if (expectedModCount == modCount) {
+          try {
+              E result = get(pos + 1);
+              lastPosition = ++pos;
+              return result;
+          } catch (IndexOutOfBoundsException e) {
+              throw new NoSuchElementException();
+          }
+      }
+      throw new ConcurrentModificationException();
+  }
+  
+  public void remove() {
+      if (this.lastPosition == -1) {
+          throw new IllegalStateException();
+      }
+  
+      if (expectedModCount != modCount) {
+          throw new ConcurrentModificationException();
+      }
+  
+      try {
+          AbstractList.this.remove(lastPosition);
+      } catch (IndexOutOfBoundsException e) {
+          throw new ConcurrentModificationException();
+      }
+  
+      expectedModCount = modCount;
+      if (pos == lastPosition) {
+          pos--;
+      }
+      lastPosition = -1;
+  }
+  ```
+
+  可以看到在调用迭代器的next，remove方法时都会比较modCount和
+
+  expectedModCount是否相等，如果不相等就会抛出ConcurrentModificationException，也就是成为了fail-fast。
+
+  而modCount在add，clear，remove时都会被修改：
+
+  ```java
+  public boolean add(E object) {
+      //...
+      modCount++;
+      return true;
+  }
+  
+  public void clear() {
+      if (size != 0) {
+          //...
+          modCount++;
+      }
+  }
+  
+  public boolean remove(Object object) {
+      Object[] a = array;
+      int s = size;
+      if (object != null) {
+          for (int i = 0; i < s; i++) {
+              if (object.equals(a[i])) {
+                  //...
+                  modCount++;
+                  return true;
+              }
+          }
+      } else {
+          for (int i = 0; i < s; i++) {
+              if (a[i] == null) {
+                  //...
+                  modCount++;
+                  return true;
+              }
+          }
+      }
+      return false;
+  }
+  ```
+
+  因此我们知道了fail-fast即ConcurrentModificationException出现的原因。
+
+- **解决fail-fast**
+
+  - 方法一:
+    用 CopyOnWriteArrayList，ConcurrentHashMap 替换 ArrayList， HashMap，它们的功能和名字一样，在写入时会创建一个 copy，然后在这个 copy 版本上进行修改操作，这样就不会影响原来的迭代。不过坏处就是浪费内存。
+
+  - 方法二：
+    使用 Collections.synchronizedList加同步锁，不过这样有点粗暴。
+
+#### ArrayList
+
+- **什么是ArrayList**
+
+  ArrayList是Java集合框架中List接口的一个实现类。有以下特点：
+
+  - 容量不固定，想放多少放多少（当然有最大阈值，但一般达不到）
+  - 有序的（元素输出顺序与输入顺粗一致）
+  - 元素可以为null
+  - 效率高
+    - size()，isEmpty()，get()，set()，iterator()，ListIterator()方法的时间复杂度都是O(1)
+    - add()添加操作的时间复杂度平均为O(n)
+    - 其他所有操作的时间复杂度几乎都是O(n)
+
+  - 占用空间更小
+
+    对比LinkedList，不用占用额外空间维护链表结构。
+
+- **ArrayList的成员变量**
+
+  ![这里写图片描述](https://img-blog.csdn.net/20161018135844873)
+
+  - 底层数据结构，数组：
+
+    ```java
+    transient Object[] elementData
+    ```
+
+    由于数组类型为Object，所以允许添加null。
+
+    transient说明这个数组无法序列化。
+
+    初始时为DEFAULTCAPACITY_EMPTY_ELEMENTDATA 
+
+  - 默认的空数组：
+
+    ```jav
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+    
+    private static final Object[] EMPTY_ELEMENTDATA = {};
+    
+    ```
+
+  - 数组初始容量为10：
+
+    ```java
+    private static final int DEFAULT_CAPACITY = 10;
+    ```
+
+  - 数组中当前元素个数：
+
+    ```java
+    private int size;
+    ```
+
+    size <= capacity
+
+  - 数组最大容量：
+
+    ```java
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+    ```
+
+    Integer.MAX_VALUE = 0x7fffffff
+
+    换算成二进制：2^31 - 1，十进制就是2147483647，二十一亿多
+
+    一些虚拟机需要在数组前加上头标签，所以减去8。
+
+    当想要分配比MAX_ARRAY_SIZE大的个数就会报OutOfMemoryError。
+
+- **ArrayList的关键方法**
+
+  - 构造函数
+
+    ArrayList有三种构造方法：
+
+    ```java
+    //初始为空数组
+    public ArrayList() {
+        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
+    
+    //根据指定容量，创建个对象数组
+    public ArrayList(int initialCapacity) {
+        if (initialCapacity > 0) {
+            this.elementData = new Object[initialCapacity];
+        } else if (initialCapacity == 0) {
+            this.elementData = EMPTY_ELEMENTDATA;
+        } else {
+            throw new IllegalArgumentException("Illegal Capacity: "+
+                                               initialCapacity);
+        }
+    }
+    
+    //直接创建和指定集合一样内容的 ArrayList
+    public ArrayList(Collection<? extends E> c) {
+        elementData = c.toArray();
+        if ((size = elementData.length) != 0) {
+            // c.toArray 有可能不返回一个 Object 数组
+            if (elementData.getClass() != Object[].class)
+                //使用 Arrays.copy 方法拷创建一个 Object 数组
+                elementData = Arrays.copyOf(elementData, size, Object[].class);
+        } else {
+            // replace with empty array.
+            this.elementData = EMPTY_ELEMENTDATA;
+        }
+    }
+    
+    ```
+
+  - 添加元素：
+
+    ```java
+    public boolean add(E e) {
+        //对数组的容量进行调整
+        ensureCapacityInternal(size + 1);  // Increments modCount!!
+        elementData[size++] = e;
+        return true;
+    }
+    
+    //在指定位置添加一个元素
+    public void add(int index, E element) {
+        rangeCheckForAdd(index);
+    
+        //对数组的容量进行调整
+        ensureCapacityInternal(size + 1);  // Increments modCount!!
+        //整体后移一位，效率不太好啊
+        System.arraycopy(elementData, index, elementData, index + 1,
+                         size - index);
+        elementData[index] = element;
+        size++;
+    }
+    
+    
+    //添加一个集合
+    public boolean addAll(Collection<? extends E> c) {
+        //把该集合转为对象数组
+        Object[] a = c.toArray();
+        int numNew = a.length;
+        //增加容量
+        ensureCapacityInternal(size + numNew);  // Increments modCount
+        //挨个向后迁移
+        System.arraycopy(a, 0, elementData, size, numNew);
+        size += numNew;
+        //新数组有元素，就返回 true
+        return numNew != 0;
+    }
+    
+    //在指定位置，添加一个集合
+    public boolean addAll(int index, Collection<? extends E> c) {
+        rangeCheckForAdd(index);
+    
+        Object[] a = c.toArray();
+        int numNew = a.length;
+        ensureCapacityInternal(size + numNew);  // Increments modCount
+    
+        int numMoved = size - index;
+        //原来的数组挨个向后迁移
+        if (numMoved > 0)
+            System.arraycopy(elementData, index, elementData, index + numNew,
+                             numMoved);
+        //把新的集合数组 添加到指定位置
+        System.arraycopy(a, 0, elementData, index, numNew);
+        size += numNew;
+        return numNew != 0;
+    }
+    ```
+
+  - 对数组的容量进行调整
+
+    ```java
+    public void ensureCapacity(int minCapacity) {
+        int minExpand = (elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+            // 不是默认的数组，说明已经添加了元素
+            ? 0
+            // 默认的容量
+            : DEFAULT_CAPACITY;
+    
+        if (minCapacity > minExpand) {
+            //当前元素个数比默认容量大
+            ensureExplicitCapacity(minCapacity);
+        }
+    }
+    
+    private void ensureCapacityInternal(int minCapacity) {
+        //还没有添加元素
+        if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+            //最小容量取默认容量和 当前元素个数 最大值
+            minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
+        }
+    
+        ensureExplicitCapacity(minCapacity);
+    }
+    
+    private void ensureExplicitCapacity(int minCapacity) {
+        modCount++;
+    
+        // 容量不够了，需要扩容
+        if (minCapacity - elementData.length > 0)
+            grow(minCapacity);
+    }
+    ```
+
+    我们可以主动调用ensureCapcity来增加ArrayList对象的容量，这样就避免添加元素满了时扩容、挨个复制后移等消耗。
+
+  - 扩容
+
+    ```java
+    private void grow(int minCapacity) {
+        int oldCapacity = elementData.length;
+        // 1.5 倍 原来容量
+        int newCapacity = oldCapacity + (oldCapacity >> 1);
+    
+        //如果当前容量还没达到 1.5 倍旧容量，就使用当前容量，省的站那么多地方
+        if (newCapacity - minCapacity < 0)
+            newCapacity = minCapacity;
+    
+        //新的容量居然超出了 MAX_ARRAY_SIZE
+        if (newCapacity - MAX_ARRAY_SIZE > 0)
+            //最大容量可以是 Integer.MAX_VALUE
+            newCapacity = hugeCapacity(minCapacity);
+    
+        // minCapacity 一般跟元素个数 size 很接近，所以新建的数组容量为 newCapacity 更宽松些
+        elementData = Arrays.copyOf(elementData, newCapacity);
+    }
+    
+    private static int hugeCapacity(int minCapacity) {
+        if (minCapacity < 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity > MAX_ARRAY_SIZE) ?
+            Integer.MAX_VALUE :
+            MAX_ARRAY_SIZE;
+    }
+    ```
+
+  - 查询，修改等操作，直接根据角标对数组操作，都很快：
+
+    ```java
+    E elementData(int index) {
+        return (E) elementData[index];
+    }
+    
+    //获取
+    public E get(int index) {
+        rangeCheck(index);
+        //直接根据数组角标返回元素，快的一比
+        return elementData(index);
+    }
+    
+    //修改
+    public E set(int index, E element) {
+        rangeCheck(index);
+        E oldValue = elementData(index);
+    
+        //直接对数组操作
+        elementData[index] = element;
+        //返回原来的值
+        return oldValue;
+    }
+    ```
+
+  - 删除，还是有点慢
+
+    ```java
+    //根据位置删除
+    public E remove(int index) {
+        rangeCheck(index);
+    
+        modCount++;
+        E oldValue = elementData(index);
+    
+        //挨个往前移一位
+        int numMoved = size - index - 1;
+        if (numMoved > 0)
+            System.arraycopy(elementData, index+1, elementData, index,
+                             numMoved);
+        //原数组中最后一个元素删掉
+        elementData[--size] = null; // clear to let GC do its work
+    
+        return oldValue;
+    }
+    
+    //删除某个元素
+    public boolean remove(Object o) {
+        if (o == null) {
+            //挨个遍历找到目标
+            for (int index = 0; index < size; index++)
+                if (elementData[index] == null) {
+                    //快速删除
+                    fastRemove(index);
+                    return true;
+                }
+        } else {
+            for (int index = 0; index < size; index++)
+                if (o.equals(elementData[index])) {
+                    fastRemove(index);
+                    return true;
+                }
+        }
+        return false;
+    }
+    
+    //内部方法，“快速删除”，就是把重复的代码移到一个方法里
+    //没看出来比其他 remove 哪儿快了 - -
+    private void fastRemove(int index) {
+        modCount++;
+        int numMoved = size - index - 1;
+        if (numMoved > 0)
+            System.arraycopy(elementData, index+1, elementData, index,
+                             numMoved);
+        elementData[--size] = null; // clear to let GC do its work
+    }
+    
+    //保留公共的
+    public boolean retainAll(Collection<?> c) {
+        Objects.requireNonNull(c);
+        return batchRemove(c, true);
+    }
+    
+    //删除或者保留指定集合中的元素
+    private boolean batchRemove(Collection<?> c, boolean complement) {
+        final Object[] elementData = this.elementData;
+        //使用两个变量，一个负责向后扫描，一个从 0 开始，等待覆盖操作
+        int r = 0, w = 0;
+        boolean modified = false;
+        try {
+            //遍历 ArrayList 集合
+            for (; r < size; r++)
+                //如果指定集合中是否有这个元素，根据 complement 判断是否往前覆盖删除
+                if (c.contains(elementData[r]) == complement)
+                    elementData[w++] = elementData[r];
+        } finally {
+            //发生了异常，直接把 r 后面的复制到 w 后面
+            if (r != size) {
+                System.arraycopy(elementData, r,
+                                 elementData, w,
+                                 size - r);
+                w += size - r;
+            }
+            if (w != size) {
+                // 清除多余的元素，clear to let GC do its work
+                for (int i = w; i < size; i++)
+                    elementData[i] = null;
+                modCount += size - w;
+                size = w;
+                modified = true;
+            }
+        }
+        return modified;
+    }
+    
+    //清楚全部
+    public void clear() {
+        modCount++;
+        //并没有直接使数组指向 null,而是逐个把元素置为空
+        //下次使用时就不用重新 new 了
+        for (int i = 0; i < size; i++)
+            elementData[i] = null;
+    
+        size = 0;
+    }
+    ```
+
+  - 判断状态：
+
+    ```java
+    public boolean contains(Object o) {
+        return indexOf(o) >= 0;
+    }
+    
+    //遍历，第一次找到就返回
+    public int indexOf(Object o) {
+        if (o == null) {
+            for (int i = 0; i < size; i++)
+                if (elementData[i]==null)
+                    return i;
+        } else {
+            for (int i = 0; i < size; i++)
+                if (o.equals(elementData[i]))
+                    return i;
+        }
+        return -1;
+    }
+    
+    //倒着遍历
+    public int lastIndexOf(Object o) {
+        if (o == null) {
+            for (int i = size-1; i >= 0; i--)
+                if (elementData[i]==null)
+                    return i;
+        } else {
+            for (int i = size-1; i >= 0; i--)
+                if (o.equals(elementData[i]))
+                    return i;
+        }
+        return -1;
+    }
+    ```
+
+  - 转换成数组：
+
+    ```java
+    public Object[] toArray() {
+        return Arrays.copyOf(elementData, size);
+    }
+    
+    public <T> T[] toArray(T[] a) {
+        //如果只是要把一部分转换成数组
+        if (a.length < size)
+            // Make a new array of a's runtime type, but my contents:
+            return (T[]) Arrays.copyOf(elementData, size, a.getClass());
+        //全部元素拷贝到 数组 a
+        System.arraycopy(elementData, 0, a, 0, size);
+        if (a.length > size)
+            a[size] = null;
+        return a;
+    }
+    ```
+
+    看下Arrays.copyOf()方法：
+
+    ```java
+    public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
+        @SuppressWarnings("unchecked")
+        T[] copy = ((Object)newType == (Object)Object[].class)
+            ? (T[]) new Object[newLength]
+            : (T[]) Array.newInstance(newType.getComponentType(), newLength);
+        System.arraycopy(original, 0, copy, 0,
+                         Math.min(original.length, newLength));
+        return copy;
+    }
+    ```
+
+    如果newType是一个对象数组，就直接把original的元素拷贝到对象数组中；否则新建一个newType类型的数组。
+
+- **ArrayList的内部类**
+
+  迭代器Iterator，ListIterator没什么特别，直接使用角标访问数组的元素：
+
+  ```java
+  private class ListItr extends Itr implements ListIterator<E> {
+      ListItr(int index) {
+          super();
+          cursor = index;
+      }
+  
+      public boolean hasPrevious() {
+          return cursor != 0;
+      }
+  
+      public int nextIndex() {
+          return cursor;
+      }
+  
+      public int previousIndex() {
+          return cursor - 1;
+      }
+  
+      @SuppressWarnings("unchecked")
+      public E previous() {
+          checkForComodification();
+          int i = cursor - 1;
+          if (i < 0)
+              throw new NoSuchElementException();
+          Object[] elementData = ArrayList.this.elementData;
+          if (i >= elementData.length)
+              throw new ConcurrentModificationException();
+          cursor = i;
+          return (E) elementData[lastRet = i];
+      }
+  
+      public void set(E e) {
+          if (lastRet < 0)
+              throw new IllegalStateException();
+          checkForComodification();
+  
+          try {
+              ArrayList.this.set(lastRet, e);
+          } catch (IndexOutOfBoundsException ex) {
+              throw new ConcurrentModificationException();
+          }
+      }
+  
+      public void add(E e) {
+          checkForComodification();
+  
+          try {
+              int i = cursor;
+              ArrayList.this.add(i, e);
+              cursor = i + 1;
+              lastRet = -1;
+              expectedModCount = modCount;
+          } catch (IndexOutOfBoundsException ex) {
+              throw new ConcurrentModificationException();
+          }
+      }
+  }
+  ```
+
+  
+
+  
