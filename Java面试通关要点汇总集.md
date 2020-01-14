@@ -3043,3 +3043,93 @@ List list = Collections.synchronizedList(List list);
     - 每个叶子节点都是黑色的空节点（NIL节点）
     - 每个红色节点的两个子节点都是黑色。（从每个叶子到根的所有路径上不能有两个连续的红色节点）
     - 从任一节点到其每个叶子的所有路径都包含相同数目的黑色节点（每一条树链上的黑色节点数量必须相等）
+
+#### HashMap
+
+- **HashMap简介**
+
+  HashMap主要用来存放键值对，它基于哈希表的Map接口实现，是常用的Java集合之一。
+
+  JDK1.8 之前HashMap有**数组+链表**组成的，数组是HashMap的主体，链表则是主要为了解决哈希冲突而存在的（“拉链法”解决冲突）。JDK1.8以后在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为8）时，将链表转化为**红黑树**（将链表转换成红黑树前会判断，如果当前数组的长度小于64，那么会选择先进行数组扩容，而不是转换为红黑树），以减少搜索时间。
+
+- **底层数据结构分析**
+
+  JDK1.8之前HashMap底层时数组和链表结合在一起使用，也就是**链表散列**。HashMap通过key的hashCode经过hash算法处理过后得到hash值，然后通过（n - 1）& hash 判断当前元素存放的位置（这里的n指的是数组的长度），如果当前位置存在元素的话，就判断该元素与要存入的元素的hash值以及key是否相同，如果相同的话，直接覆盖，不相同就通过拉链法解决冲突。
+
+  - JDK1.8的hash方法相比于 JDK1.7的hash方法更加简化，但原理不变
+
+    ```java
+    static final int hash(Object key) {
+          int h;
+          // key.hashCode()：返回散列值也就是hashcode
+          // ^ ：按位异或
+          // >>>:无符号右移，忽略符号位，空位都以0补齐
+          return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+     }
+    ```
+
+  - 对比一下JDK1.7的hash方法
+
+    ```java
+    static int hash(int h) {
+        // This function ensures that hashCodes that differ only by
+        // constant multiples at each bit position have a bounded
+        // number of collisions (approximately 8 at default load factor).
+    
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
+    }
+    ```
+
+  - JDK1.8之前的内部结构
+
+    ![img](https://camo.githubusercontent.com/70622a62ee262fb60896f5e629012eabd698cb60/68747470733a2f2f6d792d626c6f672d746f2d7573652e6f73732d636e2d6265696a696e672e616c6979756e63732e636f6d2f323031392d372f6a646b312e382545342542392538422545352538392538442545372539412538342545352538362538352545392538332541382545372542422539332545362539452538342e706e67)
+
+  - JDK1.8 之后，当链表长度大于阈值（默认为8）时，将链表转化为红黑树，以减少搜索时间
+
+    ![img](https://camo.githubusercontent.com/20de7e465cac279842851258ec4d1ec1c4d3d7d1/687474703a2f2f6d792d626c6f672d746f2d7573652e6f73732d636e2d6265696a696e672e616c6979756e63732e636f6d2f31382d382d32322f36373233333736342e6a7067)
+
+  - 类的属性
+
+    ```java
+    public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneable, Serializable {
+        // 序列号
+        private static final long serialVersionUID = 362498820763181265L;    
+        // 默认的初始容量是16
+        static final int DEFAULT_INITIAL_CAPACITY = 1 << 4;   
+        // 最大容量
+        static final int MAXIMUM_CAPACITY = 1 << 30; 
+        // 默认的填充因子
+        static final float DEFAULT_LOAD_FACTOR = 0.75f;
+        // 当桶(bucket)上的结点数大于这个值时会转成红黑树
+        static final int TREEIFY_THRESHOLD = 8; 
+        // 当桶(bucket)上的结点数小于这个值时树转链表
+        static final int UNTREEIFY_THRESHOLD = 6;
+        // 桶中结构转化为红黑树对应的table的最小大小
+        static final int MIN_TREEIFY_CAPACITY = 64;
+        // 存储元素的数组，总是2的幂次倍
+        transient Node<k,v>[] table; 
+        // 存放具体元素的集
+        transient Set<map.entry<k,v>> entrySet;
+        // 存放元素的个数，注意这个不等于数组的长度。
+        transient int size;
+        // 每次扩容和更改map结构的计数器
+        transient int modCount;   
+        // 临界值 当实际大小(容量*填充因子)超过临界值时，会进行扩容
+        int threshold;
+        // 加载因子
+        final float loadFactor;
+    }
+    ```
+
+    - loadFactor加载因子
+
+      loadFactor加载因子是控制数组存放数据的疏密程度，loadFactor越趋近于1，那么数组中存放的数据（entry）也就越多，也就越密，也就是会让链表的长度增加，loadFactor越小，也就是趋近于0，数组中存放的数据（entry）也就越少，也就越稀疏。
+
+      **loadFactor太大导致查找元素效率低，太小导致数组的利用率低，存放的数据会很分散。loadFactor的默认值为0.75f是官方给出的一个比较好的临界值**。
+
+      给定的默认容量为16，负载因子为0.75。Map在使用过程中不断往里面存放数据，当数量达到了16 * 0.75 = 12就需要将当前16的容量进行扩容，而扩容这个过程涉及道rehash、复制数据等操作，所以非常消耗性能。
+
+    - threshold
+
+      **threshold = capacity \* loadFactor**，**当Size>=threshold**的时候，那么就要考虑对数组的扩增了，也就是说，这个的意思就是 **衡量数组是否需要扩增的一个标准**。
