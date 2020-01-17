@@ -1244,6 +1244,105 @@
 
   可以看[Java注解](https://www.bilibili.com/video/av62102209?p=6)
 
+#### 异常
+
+这里有一些关于异常的经典面试题：
+
+- Java异常相关的类结构和主要继承关系是怎样的？
+
+- Java7在关于异常的语法上做了什么改进？
+
+- 什么是运行时异常和声明式异常？有什么区别？
+
+- 什么是异常丢失（异常覆盖）问题？
+
+- 什么是异常链？
+
+- 什么是返回值覆盖？
+
+- 编写异常时的一些最佳实践？
+
+  
+
+- 异常的层次结构
+
+  先上图：
+
+  ![img](https://user-gold-cdn.xitu.io/2018/9/27/1661b2ed72de63c1?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+  抛开下面那些异常不谈，我们关注点可能主要在四个类上：
+
+  - Throwable
+  - Error
+  - Exception
+  - RuntimeException
+
+  其中，因为Error代表错误，多为比较严重的错误。如果了解JVM，应该对OMError和
+
+  SOError这两个类比较熟悉
+
+  一般我们写代码时，可能用得比较多的是Exception类。
+
+- **Java7异常**
+
+  Java7对异常做了两个改进。第一个是try-with-resources，第二个是catch多个异常。
+
+  - try-with-resources
+
+    所谓的try-with-resources，是个语法糖。实际上就是自动调用资源的close()函数。和Python里的with语句差不多。
+
+    不使用try-with-resources，我们在使用io等资源对象时，通常时这样写的：
+
+    ```java
+    String getReadLine() throws IOException {
+        BufferedReader br = new BufferedReader(fileReader);
+        try {
+            return br.readLine();
+        } finally {
+            if (br != null) br.close();
+        }
+    }
+    ```
+
+    使用try-with-resources的写法：
+
+    ```java
+    String getReadLine() throws IOException {
+        try (BufferedReader br = new BufferedReader(fileReader)) {
+            return br.readLine();
+        }
+    }
+    ```
+
+    显然，编译器自动在try-with-resources后面增加了判断对象是否为null，如果不为null，则调用close()函数的字节码。
+
+    只有实现了java.lang.AutoCloseable接口，或者java.io.Closable（实际上继承自java.lang.AutoCloseable）接口的对象，才会自动调用其close()函数。
+
+    但是，需要注意的是try-with-resources会出现异常覆盖的问题，也就是说catch块抛出的异常可能会被调用close()方法时抛出的异常覆盖掉。
+
+- **多异常捕捉**
+
+  直接上代码：
+
+  ```java
+  public static void main(String[] args) {
+      try {
+          int a = Integer.parseInt(args[0]);
+          int b = Integer.parseInt(args[1]);
+          int c = a / b;
+          System.out.println("result is：" + c);
+      } catch (IndexOutOfBoundsException | NumberFormatException | ArithmeticException ie) {
+          System.out.println("发生了以上三个异常之一。");
+          ie.getMessage();
+          // 捕捉多异常时，异常变量默认有final修饰，
+          // 所以下面代码有错：
+          // ie = new ArithmeticException("test");
+      }
+  }
+  ```
+
+  
+
 ## 集合
 
 #### 泛型
